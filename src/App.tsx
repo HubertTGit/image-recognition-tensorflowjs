@@ -1,10 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { GraphModel, loadGraphModel } from '@tensorflow/tfjs';
-
 function App() {
   return (
     <>
-      <p>h</p>
+      <h1 className="text-3xl font-bold underline">blank</h1>
     </>
   );
 }
