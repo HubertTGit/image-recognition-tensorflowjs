@@ -8,6 +8,12 @@ import {
 function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [clasifications, setClasifications] = useState<IClassification[]>([]);
+  const [isRecording, setIsRecording] = useState<{
+    startAnim: boolean;
+    idx: number;
+  }>({ startAnim: false, idx: 0 });
+
+  const animationFrameRef = useRef<number | null>(null);
 
   const addClassificationHandler = () => {
     setClasifications((state): IClassification[] => {
@@ -18,7 +24,7 @@ function App() {
             {
               clasificationName: `class ${state[state.length - 1].index + 1}`,
               index: state[state.length - 1].index + 1,
-              shots: [''],
+              shots: [],
             },
           ],
         ];
@@ -27,34 +33,38 @@ function App() {
         {
           clasificationName: 'class 0',
           index: 0,
-          shots: [''],
+          shots: [],
         },
       ];
     });
   };
 
-  const addShotHandler = (idx: number, isPressed: boolean) => {
-    if (!isPressed) {
-      return;
-    }
-    propagateShotHandler(idx);
+  const addShotHandler = (idx: number, state: boolean | undefined) => {
+    setIsRecording({ startAnim: state ?? false, idx });
   };
 
-  const propagateShotHandler = (idx: number) => {
-    setClasifications((state) => {
-      const index = state.findIndex((c) => c.index === idx);
-      return [
-        ...state.slice(0, index),
-        {
-          ...state[index],
-          shots: [...state[index].shots, ''],
-        },
-        ...state.slice(index + 1),
-      ];
-    });
+  useEffect(() => {
+    const { idx, startAnim } = isRecording;
 
-    requestAnimationFrame(() => propagateShotHandler(idx));
-  };
+    const animate = () => {
+      if (startAnim) {
+        setClasifications((state) => {
+          state[idx].shots.push('');
+          return state;
+        });
+
+        animationFrameRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [isRecording]);
 
   const removeHandler = (idx: number) => {
     setClasifications((state) => {

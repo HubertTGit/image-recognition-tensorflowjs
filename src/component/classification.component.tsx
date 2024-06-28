@@ -19,6 +19,8 @@ export function Classification({
   cla,
 }: ClassificationProps) {
   const [clasification, setClasification] = useState<string>('');
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [animationFrame, setAnimationFrame] = useState([]);
 
   useEffect(() => {
     setClasification(cla.clasificationName);
@@ -45,7 +47,8 @@ export function Classification({
       >
         Press To Record
       </button>
-      <ul className="flex gap-2">
+      <p>{cla.shots.length}</p>
+      <ul className="flex gap-2 flex-wrap">
         {cla.shots.map((shot, idx) => (
           <li key={idx}>
             <div className="w-8 h-8 bg-red-600"></div>
