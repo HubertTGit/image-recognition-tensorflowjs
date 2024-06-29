@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Cam from './component/cam.component';
 import { Classification } from './component/classification.component';
-import { IClassification } from './model/classification.model';
+import { IClassification } from './interfaces/classification.model';
 
 function App() {
   const videoRef = useRef<HTMLVideoElement>(null);

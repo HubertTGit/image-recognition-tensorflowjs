@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { IClassification } from '../model/classification.model';
+import { useEffect, useState } from 'react';
+import { IClassification } from '../interfaces/classification.model';
 
 interface ClassificationProps {
   onChangeName: (name: string, index: number) => void;
@@ -42,7 +42,7 @@ export function Classification({
             });
           }
         }
-      }, 250);
+      }, 50);
     } else {
       onRecoderHandler(classification.index, frames);
     }
@@ -82,6 +82,14 @@ export function Classification({
             <img src={shot} alt="" width={100} height={100} />
           </li>
         ))}
+
+        {!!frames.length && (
+          <li>
+            <button className="btn btn-error" onClick={() => setFrames([])}>
+              Delete All Frames{' '}
+            </button>
+          </li>
+        )}
       </ul>
     </div>
   );
