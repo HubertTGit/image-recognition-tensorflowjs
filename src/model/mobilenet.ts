@@ -1,7 +1,7 @@
 import { loadGraphModel, Tensor, tidy, zeros } from '@tensorflow/tfjs';
 
-const MOBILE_NET_INPUT_WIDTH = 224;
-const MOBILE_NET_INPUT_HEIGHT = 224;
+export const MOBILE_NET_INPUT_WIDTH = 224;
+export const MOBILE_NET_INPUT_HEIGHT = 224;
 
 //for more details of the base model, visit https://www.kaggle.com/models/google/mobilenet-v3/tfJs/small-100-224-feature-vector
 const URL =

@@ -2,8 +2,23 @@ import { useEffect, useRef, useState } from 'react';
 import Cam from './component/cam.component';
 import { Classification } from './component/classification.component';
 import { IClassification } from './interfaces/classification.model';
-import { loadMobileNetFeatureModel } from './model/mobilenet';
-import { GraphModel, Sequential } from '@tensorflow/tfjs';
+import {
+  loadMobileNetFeatureModel,
+  MOBILE_NET_INPUT_HEIGHT,
+  MOBILE_NET_INPUT_WIDTH,
+} from './model/mobilenet';
+import {
+  browser,
+  GraphModel,
+  Sequential,
+  tidy,
+  image,
+  tensor2d,
+  tensor1d,
+  util,
+  oneHot,
+  stack,
+} from '@tensorflow/tfjs';
 import { trainedModel } from './model/trained-model';
 
 function App() {
@@ -87,8 +102,41 @@ function App() {
     initCam(videoRef);
   }, []);
 
-  const train = () => {
+  const train = async () => {
     console.table(clasifications);
+
+    const featureInput = clasifications.reduce((acc, clasification) => {
+      return [...acc, ...clasification.imageData];
+    }, []) as unknown as ImageData[];
+
+    const trainingDataOutputs = clasifications.reduce((acc, clasification) => {
+      return [...acc, ...clasification.idx];
+    }, []) as unknown as number[];
+
+    const trainingDataInputs = featureInput.map((d) =>
+      calculateFeaturesOnCurrentFrame(d, mobileNet)
+    );
+
+    util.shuffleCombo(trainingDataInputs, trainingDataOutputs);
+
+    if (localModel) {
+      const outputsAsTensor = tensor1d(trainingDataOutputs, 'int32');
+      const oneHotOutputs = oneHot(outputsAsTensor, clasifications.length);
+      const inputsAsTensor = stack(trainingDataInputs);
+
+      await localModel.fit(inputsAsTensor, oneHotOutputs, {
+        shuffle: true,
+        batchSize: 5,
+        epochs: 10,
+        callbacks: { onEpochEnd: logProgress },
+      });
+
+      outputsAsTensor.dispose();
+      oneHotOutputs.dispose();
+      inputsAsTensor.dispose();
+
+      setLocalModel(localModel);
+    }
   };
 
   return (
@@ -158,4 +206,25 @@ const initCam = (ref: React.RefObject<HTMLVideoElement>) => {
         console.error('Error accessing camera:', error);
       });
   }
+};
+
+const calculateFeaturesOnCurrentFrame = (
+  imageDatas: ImageData,
+  model?: GraphModel | null
+) => {
+  return tidy(() => {
+    const fromVid = browser.fromPixels(imageDatas);
+    const resized = image.resizeBilinear(fromVid, [
+      MOBILE_NET_INPUT_WIDTH,
+      MOBILE_NET_INPUT_HEIGHT,
+    ]);
+    const normalizedTensorFrame = resized.div(255);
+    const predict = model!.predict(normalizedTensorFrame.expandDims());
+
+    return predict.squeeze();
+  });
+};
+
+const logProgress = (epoch: number, logs: any) => {
+  console.log(`Epoch ${epoch + 1}: loss = ${logs.loss}`);
 };
