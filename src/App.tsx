@@ -9,7 +9,6 @@ import {
   Sequential,
   tidy,
   image,
-  tensor2d,
   tensor1d,
   util,
   oneHot,
@@ -30,6 +29,7 @@ function App() {
   const [mobileNet, setmobileNet] = useState<GraphModel | null>(null);
   const [localModel, setLocalModel] = useState<Sequential | null>(null);
   const [isModelTrained, setIsModelTrained] = useState<boolean>(false);
+  const [predictionResult, setPredictionResult] = useState<string>('');
 
   useEffect(() => {
     loadMobileNetFeatureModel().then((model) => {
@@ -87,9 +87,7 @@ function App() {
   };
   const removeHandler = (idx: number) => {
     setClasifications((state) => {
-      const newState = [...state];
-      newState.splice(idx, 1);
-      return newState;
+      return state.filter((c) => c.index !== idx);
     });
   };
 
@@ -154,10 +152,11 @@ function App() {
         const feature = calculateFeaturesOnCurrentFrame(dataImg, mobileNet);
 
         const prediction = localModel.predict(feature.expandDims()).squeeze();
-        const highestIndex = prediction.argMax().arraySync();
-        const predictionArray = prediction.arraySync();
+        const highestIndex = prediction.argMax().arraySync(); // 0 or 1
+        const predictionArray = prediction.arraySync(); // [0.1, 0.9]
 
-        console.log(highestIndex, predictionArray);
+        const theResult = clasifications[highestIndex].clasificationName;
+        setPredictionResult(theResult);
       });
     }
   };
@@ -191,6 +190,9 @@ function App() {
             Predict
           </button>
           <button className="btn btn-secondary">Reset</button>
+          <h1 className="text-2xl text-center text-green-400">
+            {predictionResult}
+          </h1>
         </div>
       </div>
 
