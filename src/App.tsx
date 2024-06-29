@@ -182,7 +182,7 @@ function App() {
           >
             {mobileNet ? 'Add Face Data' : 'Loading Model'}
           </button>
-          <Cam width={640} height={480} ref={videoRef} />
+          <Cam width={480} height={480} ref={videoRef} />
         </div>
         <div>
           <button
@@ -235,7 +235,7 @@ const initCam = (ref: React.RefObject<HTMLVideoElement>) => {
   if (ref.current) {
     const constraints = {
       video: {
-        width: { ideal: 640 },
+        width: { ideal: 480 },
         height: { ideal: 480 },
       },
       audio: false,
