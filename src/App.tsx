@@ -161,6 +161,12 @@ function App() {
     }
   };
 
+  const reset = () => {
+    setClasifications([]);
+    setIsModelTrained(false);
+    setPredictionResult('');
+  };
+
   return (
     <div>
       <h1 className="text-3xl font-bold underline">
@@ -179,7 +185,11 @@ function App() {
           <Cam width={640} height={480} ref={videoRef} />
         </div>
         <div>
-          <button className="btn btn-outline" onClick={train}>
+          <button
+            className="btn btn-outline"
+            onClick={train}
+            disabled={!clasifications.length}
+          >
             Train
           </button>
           <button
@@ -189,7 +199,13 @@ function App() {
           >
             Predict
           </button>
-          <button className="btn btn-secondary">Reset</button>
+          <button
+            className="btn btn-secondary"
+            onClick={reset}
+            disabled={!isModelTrained}
+          >
+            Reset
+          </button>
           <h1 className="text-2xl text-center text-green-400">
             {predictionResult}
           </h1>
