@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { IClassification } from '../model/classification.model';
 
 interface ClassificationProps {
@@ -68,6 +68,7 @@ export function Classification({
         Delete
       </button>
       <button
+        disabled={!className?.length}
         className="btn btn-primary"
         onMouseDown={() => setIsRecording(true)}
         onMouseUp={() => setIsRecording(false)}
@@ -75,7 +76,6 @@ export function Classification({
       >
         Press To Record
       </button>
-      <p>{frames.length}</p>
       <ul className="flex gap-2 flex-wrap">
         {frames.map((shot, idx) => (
           <li key={idx}>
