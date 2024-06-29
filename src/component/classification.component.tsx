@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { IClassification } from '../interfaces/classification.model';
 import { FRAME_RATE_MS } from '../constants/constants';
+import { createCanvasContextFromVideo } from '../utils/utilities';
 
 interface ClassificationProps {
   onChangeName: (name: string, index: number) => void;
@@ -39,10 +40,9 @@ export function Classification({
     if (isRecording) {
       timer = setInterval(() => {
         if (videoRef.current) {
-          const canvas = document.createElement('canvas');
-          canvas.width = videoRef.current.videoWidth;
-          canvas.height = videoRef.current.videoHeight;
-          const ctx = canvas.getContext('2d');
+          const canvasUtil = createCanvasContextFromVideo(videoRef.current);
+          const { canvas, ctx } = canvasUtil;
+
           if (ctx) {
             ctx.drawImage(videoRef.current, 80, 0, canvas.width, canvas.height);
             //set image data url to frames

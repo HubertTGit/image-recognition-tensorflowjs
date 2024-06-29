@@ -22,6 +22,7 @@ import {
   MOBILE_NET_INPUT_HEIGHT,
   MOBILE_NET_INPUT_WIDTH,
 } from './constants/constants';
+import { createCanvasContextFromVideo } from './utils/utilities';
 
 function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -143,6 +144,24 @@ function App() {
     }
   };
 
+  const predictCam = async () => {
+    if (localModel) {
+      tidy(() => {
+        if (!videoRef.current) return;
+
+        const { canvas, ctx } = createCanvasContextFromVideo(videoRef.current);
+        const dataImg = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const feature = calculateFeaturesOnCurrentFrame(dataImg, mobileNet);
+
+        const prediction = localModel.predict(feature.expandDims()).squeeze();
+        const highestIndex = prediction.argMax().arraySync();
+        const predictionArray = prediction.arraySync();
+
+        console.log(highestIndex, predictionArray);
+      });
+    }
+  };
+
   return (
     <div>
       <h1 className="text-3xl font-bold underline">
@@ -164,7 +183,11 @@ function App() {
           <button className="btn btn-outline" onClick={train}>
             Train
           </button>
-          <button className="btn btn-primary" disabled={!isModelTrained}>
+          <button
+            className="btn btn-primary"
+            disabled={!isModelTrained}
+            onClick={predictCam}
+          >
             Predict
           </button>
           <button className="btn btn-secondary">Reset</button>
