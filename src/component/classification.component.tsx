@@ -1,51 +1,69 @@
-import { useState, FocusEvent, useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
+import { IClassification } from '../model/classification.model';
 
-export interface IClassification {
-  clasificationName: string;
-  index: number;
-}
 interface ClassificationProps {
-  onSetHandler: (event: FocusEvent<HTMLInputElement>, index: number) => void;
+  onChangeName: (name: string, index: number) => void;
   onDeleteHandler: (idx: number) => void;
-  cla: IClassification;
+  onRecoderHandler: (idx: number, frames: string[]) => void;
+  videoRef: React.RefObject<HTMLVideoElement>;
+  classification: IClassification;
 }
 
 export function Classification({
-  onSetHandler,
+  onChangeName,
   onDeleteHandler,
-
-  cla,
+  onRecoderHandler,
+  videoRef,
+  classification,
 }: ClassificationProps) {
-  const [clasification, setClasification] = useState<string>('');
-  const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [animationFrame, setAnimationFrame] = useState<string[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [frames, setFrames] = useState<string[]>([]);
+  const [className, setClassName] = useState<string>();
 
   useEffect(() => {
-    let t: NodeJS.Timeout;
+    if (className) {
+      onChangeName(className, classification.index);
+    }
+  }, [className, classification.index, onChangeName]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
     if (isRecording) {
-      t = setInterval(() => {
-        setAnimationFrame((state) => [...state, '']);
-      }, 240);
+      timer = setInterval(() => {
+        if (videoRef.current) {
+          const canvas = document.createElement('canvas');
+          canvas.width = videoRef.current.videoWidth;
+          canvas.height = videoRef.current.videoHeight;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+            setFrames((state) => {
+              return [...state, canvas.toDataURL()];
+            });
+          }
+        }
+      }, 250);
+    } else {
+      onRecoderHandler(classification.index, frames);
     }
 
-    return () => clearInterval(t);
-  }, [isRecording]);
-
-  useEffect(() => {
-    setClasification(cla.clasificationName);
-  }, [cla]);
+    return () => {
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
+  }, [isRecording, classification.index, onRecoderHandler, frames, videoRef]);
 
   return (
     <div className="flex gap-2 items-center">
       <input
         type="text"
-        onChange={(e) => setClasification(e.target.value)}
-        value={clasification}
-        onBlur={(e) => onSetHandler(e, cla.index)}
+        onChange={(e) => setClassName(e.target.value)}
+        value={className}
       ></input>
       <button
         className="btn btn-error"
-        onClick={() => onDeleteHandler(cla.index)}
+        onClick={() => onDeleteHandler(classification.index)}
       >
         Delete
       </button>
@@ -53,14 +71,15 @@ export function Classification({
         className="btn btn-primary"
         onMouseDown={() => setIsRecording(true)}
         onMouseUp={() => setIsRecording(false)}
+        onMouseLeave={() => setIsRecording(false)}
       >
         Press To Record
       </button>
-      <p>{animationFrame.length}</p>
+      <p>{frames.length}</p>
       <ul className="flex gap-2 flex-wrap">
-        {animationFrame.map((shot, idx) => (
+        {frames.map((shot, idx) => (
           <li key={idx}>
-            <div className="w-8 h-8 bg-red-600"></div>
+            <img src={shot} alt="" width={100} height={100} />
           </li>
         ))}
       </ul>

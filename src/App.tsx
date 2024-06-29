@@ -1,9 +1,7 @@
-import { useEffect, useRef, useState, FocusEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Cam from './component/cam.component';
-import {
-  Classification,
-  IClassification,
-} from './component/classification.component';
+import { Classification } from './component/classification.component';
+import { IClassification } from './model/classification.model';
 
 function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -18,6 +16,7 @@ function App() {
             {
               clasificationName: `class ${state[state.length - 1].index + 1}`,
               index: state[state.length - 1].index + 1,
+              shots: [],
             },
           ],
         ];
@@ -26,11 +25,19 @@ function App() {
         {
           clasificationName: 'class 0',
           index: 0,
+          shots: [],
         },
       ];
     });
   };
 
+  const onSetRecordingHandler = (idx: number, frames: string[]) => {
+    setClasifications((state) => {
+      const index = state.findIndex((c) => c.index === idx);
+      state[index].shots = frames;
+      return state;
+    });
+  };
   const removeHandler = (idx: number) => {
     setClasifications((state) => {
       const newState = [...state];
@@ -39,11 +46,10 @@ function App() {
     });
   };
 
-  const changeNameHandler = (e: FocusEvent<HTMLInputElement>, idx: number) => {
+  const changeNameHandler = (name: string, idx: number) => {
     setClasifications((state) => {
-      const changedName = e.target.value;
       const index = state.findIndex((c) => c.index === idx);
-      state[index].clasificationName = changedName;
+      state[index].clasificationName = name;
 
       return state;
     });
@@ -61,9 +67,11 @@ function App() {
         {clasifications.map((clasification) => (
           <li key={clasification.index}>
             <Classification
-              cla={clasification}
+              classification={clasification}
               onDeleteHandler={removeHandler}
-              onSetHandler={changeNameHandler}
+              onChangeName={changeNameHandler}
+              onRecoderHandler={onSetRecordingHandler}
+              videoRef={videoRef}
             ></Classification>
           </li>
         ))}
