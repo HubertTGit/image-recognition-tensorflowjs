@@ -1,5 +1,7 @@
 export interface IClassification {
   clasificationName: string;
   index: number;
-  shots: string[];
+  framesUrlData: string[];
+  idx: number[];
+  imageData: ImageData[];
 }

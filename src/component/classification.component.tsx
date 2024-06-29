@@ -4,7 +4,12 @@ import { IClassification } from '../interfaces/classification.model';
 interface ClassificationProps {
   onChangeName: (name: string, index: number) => void;
   onDeleteHandler: (idx: number) => void;
-  onRecoderHandler: (idx: number, frames: string[]) => void;
+  onRecoderHandler: (
+    idx: number,
+    frames: string[],
+    idxs: number[],
+    imageDatas: ImageData[]
+  ) => void;
   videoRef: React.RefObject<HTMLVideoElement>;
   classification: IClassification;
 }
@@ -18,6 +23,8 @@ export function Classification({
 }: ClassificationProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [frames, setFrames] = useState<string[]>([]);
+  const [idx, setIdx] = useState<number[]>([]);
+  const [imageDatas, setImageDatas] = useState<ImageData[]>([]);
   const [className, setClassName] = useState<string>();
 
   useEffect(() => {
@@ -36,15 +43,27 @@ export function Classification({
           canvas.height = videoRef.current.videoHeight;
           const ctx = canvas.getContext('2d');
           if (ctx) {
-            ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(videoRef.current, 80, 0, canvas.width, canvas.height);
+            //set image data url to frames
             setFrames((state) => {
               return [...state, canvas.toDataURL()];
             });
+            //set index
+            setIdx((state) => {
+              return [...state, classification.index];
+            });
+            //set image data
+            setImageDatas((state) => {
+              return [
+                ...state,
+                ctx.getImageData(0, 0, canvas.width, canvas.height),
+              ];
+            });
           }
         }
-      }, 50);
+      }, 5);
     } else {
-      onRecoderHandler(classification.index, frames);
+      onRecoderHandler(classification.index, frames, idx, imageDatas);
     }
 
     return () => {
@@ -52,7 +71,21 @@ export function Classification({
         clearInterval(timer);
       }
     };
-  }, [isRecording, classification.index, onRecoderHandler, frames, videoRef]);
+  }, [
+    isRecording,
+    classification.index,
+    onRecoderHandler,
+    frames,
+    videoRef,
+    idx,
+    imageDatas,
+  ]);
+
+  const clearFramesHandler = () => {
+    setFrames([]);
+    setIdx([]);
+    setImageDatas([]);
+  };
 
   return (
     <div className="flex gap-2 items-center">
@@ -85,7 +118,7 @@ export function Classification({
 
         {!!frames.length && (
           <li>
-            <button className="btn btn-error" onClick={() => setFrames([])}>
+            <button className="btn btn-error" onClick={clearFramesHandler}>
               Delete All Frames{' '}
             </button>
           </li>
