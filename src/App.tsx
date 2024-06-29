@@ -2,11 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Cam from './component/cam.component';
 import { Classification } from './component/classification.component';
 import { IClassification } from './interfaces/classification.model';
-import {
-  loadMobileNetFeatureModel,
-  MOBILE_NET_INPUT_HEIGHT,
-  MOBILE_NET_INPUT_WIDTH,
-} from './model/mobilenet';
+import { loadMobileNetFeatureModel } from './model/mobilenet';
 import {
   browser,
   GraphModel,
@@ -20,12 +16,19 @@ import {
   stack,
 } from '@tensorflow/tfjs';
 import { trainedModel } from './model/trained-model';
+import {
+  BATCH_SIZE,
+  EPOCH,
+  MOBILE_NET_INPUT_HEIGHT,
+  MOBILE_NET_INPUT_WIDTH,
+} from './constants/constants';
 
 function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [clasifications, setClasifications] = useState<IClassification[]>([]);
   const [mobileNet, setmobileNet] = useState<GraphModel | null>(null);
   const [localModel, setLocalModel] = useState<Sequential | null>(null);
+  const [isModelTrained, setIsModelTrained] = useState<boolean>(false);
 
   useEffect(() => {
     loadMobileNetFeatureModel().then((model) => {
@@ -126,8 +129,8 @@ function App() {
 
       await localModel.fit(inputsAsTensor, oneHotOutputs, {
         shuffle: true,
-        batchSize: 5,
-        epochs: 10,
+        batchSize: BATCH_SIZE,
+        epochs: EPOCH,
         callbacks: { onEpochEnd: logProgress },
       });
 
@@ -136,6 +139,7 @@ function App() {
       inputsAsTensor.dispose();
 
       setLocalModel(localModel);
+      setIsModelTrained(true);
     }
   };
 
@@ -160,7 +164,9 @@ function App() {
           <button className="btn btn-outline" onClick={train}>
             Train
           </button>
-          <button className="btn btn-primary">Predict</button>
+          <button className="btn btn-primary" disabled={!isModelTrained}>
+            Predict
+          </button>
           <button className="btn btn-secondary">Reset</button>
         </div>
       </div>
@@ -214,10 +220,11 @@ const calculateFeaturesOnCurrentFrame = (
 ) => {
   return tidy(() => {
     const fromVid = browser.fromPixels(imageDatas);
-    const resized = image.resizeBilinear(fromVid, [
-      MOBILE_NET_INPUT_WIDTH,
-      MOBILE_NET_INPUT_HEIGHT,
-    ]);
+    const resized = image.resizeBilinear(
+      fromVid,
+      [MOBILE_NET_INPUT_WIDTH, MOBILE_NET_INPUT_HEIGHT],
+      true
+    );
     const normalizedTensorFrame = resized.div(255);
     const predict = model!.predict(normalizedTensorFrame.expandDims());
 

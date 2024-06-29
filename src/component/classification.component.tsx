@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { IClassification } from '../interfaces/classification.model';
+import { FRAME_RATE_MS } from '../constants/constants';
 
 interface ClassificationProps {
   onChangeName: (name: string, index: number) => void;
@@ -61,7 +62,7 @@ export function Classification({
             });
           }
         }
-      }, 5);
+      }, FRAME_RATE_MS); // 5ms
     } else {
       onRecoderHandler(classification.index, frames, idx, imageDatas);
     }

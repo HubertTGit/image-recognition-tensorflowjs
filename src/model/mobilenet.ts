@@ -1,13 +1,12 @@
 import { loadGraphModel, Tensor, tidy, zeros } from '@tensorflow/tfjs';
+import {
+  MOBILE_NET_INPUT_HEIGHT,
+  MOBILE_NET_INPUT_WIDTH,
+  MOBILE_NET_URL,
+} from '../constants/constants';
 
-export const MOBILE_NET_INPUT_WIDTH = 224;
-export const MOBILE_NET_INPUT_HEIGHT = 224;
-
-//for more details of the base model, visit https://www.kaggle.com/models/google/mobilenet-v3/tfJs/small-100-224-feature-vector
-const URL =
-  'https://www.kaggle.com/models/google/mobilenet-v3/TfJs/small-100-224-feature-vector/1';
 export const loadMobileNetFeatureModel = async () => {
-  const mobilenet = await loadGraphModel(URL, { fromTFHub: true });
+  const mobilenet = await loadGraphModel(MOBILE_NET_URL, { fromTFHub: true });
 
   // Warm up the model by passing zeros through it once.
   tidy(function () {
@@ -19,3 +18,4 @@ export const loadMobileNetFeatureModel = async () => {
 
   return mobilenet;
 };
+export { MOBILE_NET_INPUT_HEIGHT, MOBILE_NET_INPUT_WIDTH };
