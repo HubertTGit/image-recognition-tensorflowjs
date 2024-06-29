@@ -1,26 +1,35 @@
-import { useState, FocusEvent, useEffect } from 'react';
+import { useState, FocusEvent, useEffect, useRef } from 'react';
 
 export interface IClassification {
   clasificationName: string;
   index: number;
-  shots: string[];
 }
 interface ClassificationProps {
   onSetHandler: (event: FocusEvent<HTMLInputElement>, index: number) => void;
   onDeleteHandler: (idx: number) => void;
-  onAddShotHandler: (idx: number, isPressed?: boolean) => void;
   cla: IClassification;
 }
 
 export function Classification({
   onSetHandler,
   onDeleteHandler,
-  onAddShotHandler,
+
   cla,
 }: ClassificationProps) {
   const [clasification, setClasification] = useState<string>('');
   const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [animationFrame, setAnimationFrame] = useState([]);
+  const [animationFrame, setAnimationFrame] = useState<string[]>([]);
+
+  useEffect(() => {
+    let t: NodeJS.Timeout;
+    if (isRecording) {
+      t = setInterval(() => {
+        setAnimationFrame((state) => [...state, '']);
+      }, 240);
+    }
+
+    return () => clearInterval(t);
+  }, [isRecording]);
 
   useEffect(() => {
     setClasification(cla.clasificationName);
@@ -42,14 +51,14 @@ export function Classification({
       </button>
       <button
         className="btn btn-primary"
-        onMouseDown={() => onAddShotHandler(cla.index, true)}
-        onMouseUp={() => onAddShotHandler(cla.index, false)}
+        onMouseDown={() => setIsRecording(true)}
+        onMouseUp={() => setIsRecording(false)}
       >
         Press To Record
       </button>
-      <p>{cla.shots.length}</p>
+      <p>{animationFrame.length}</p>
       <ul className="flex gap-2 flex-wrap">
-        {cla.shots.map((shot, idx) => (
+        {animationFrame.map((shot, idx) => (
           <li key={idx}>
             <div className="w-8 h-8 bg-red-600"></div>
           </li>

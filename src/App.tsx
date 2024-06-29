@@ -8,12 +8,6 @@ import {
 function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [clasifications, setClasifications] = useState<IClassification[]>([]);
-  const [isRecording, setIsRecording] = useState<{
-    startAnim: boolean;
-    idx: number;
-  }>({ startAnim: false, idx: 0 });
-
-  const animationFrameRef = useRef<number | null>(null);
 
   const addClassificationHandler = () => {
     setClasifications((state): IClassification[] => {
@@ -24,7 +18,6 @@ function App() {
             {
               clasificationName: `class ${state[state.length - 1].index + 1}`,
               index: state[state.length - 1].index + 1,
-              shots: [],
             },
           ],
         ];
@@ -33,38 +26,10 @@ function App() {
         {
           clasificationName: 'class 0',
           index: 0,
-          shots: [],
         },
       ];
     });
   };
-
-  const addShotHandler = (idx: number, state: boolean | undefined) => {
-    setIsRecording({ startAnim: state ?? false, idx });
-  };
-
-  useEffect(() => {
-    const { idx, startAnim } = isRecording;
-
-    const animate = () => {
-      if (startAnim) {
-        setClasifications((state) => {
-          state[idx].shots.push('');
-          return state;
-        });
-
-        animationFrameRef.current = requestAnimationFrame(animate);
-      }
-    };
-
-    animationFrameRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [isRecording]);
 
   const removeHandler = (idx: number) => {
     setClasifications((state) => {
@@ -99,7 +64,6 @@ function App() {
               cla={clasification}
               onDeleteHandler={removeHandler}
               onSetHandler={changeNameHandler}
-              onAddShotHandler={addShotHandler}
             ></Classification>
           </li>
         ))}
