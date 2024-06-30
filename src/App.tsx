@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import Cam from './component/cam.component';
 import { Classification } from './component/classification.component';
-import { IClassification } from './interfaces/classification.model';
+import {
+  IClassification,
+  IPredictionResult,
+} from './interfaces/classification.model';
 import { loadMobileNetFeatureModel } from './model/mobilenet';
 import {
   browser,
@@ -18,6 +21,7 @@ import { trainedModel } from './model/trained-model';
 import {
   BATCH_SIZE,
   EPOCH,
+  FRAME_RATE_MS,
   MOBILE_NET_INPUT_HEIGHT,
   MOBILE_NET_INPUT_WIDTH,
 } from './constants/constants';
@@ -29,7 +33,10 @@ function App() {
   const [mobileNet, setmobileNet] = useState<GraphModel | null>(null);
   const [localModel, setLocalModel] = useState<Sequential | null>(null);
   const [isModelTrained, setIsModelTrained] = useState<boolean>(false);
-  const [predictionResult, setPredictionResult] = useState<string>('');
+  const [isPredicting, setIsPredicting] = useState<boolean>(false);
+  const [predictionResult, setPredictionResult] =
+    useState<IPredictionResult | null>(null);
+  const [trainProgress, setTrainProgress] = useState<string[]>([]);
 
   useEffect(() => {
     loadMobileNetFeatureModel().then((model) => {
@@ -142,29 +149,56 @@ function App() {
     }
   };
 
-  const predictCam = async () => {
-    if (localModel) {
-      tidy(() => {
-        if (!videoRef.current) return;
+  // predict result
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
 
-        const { canvas, ctx } = createCanvasContextFromVideo(videoRef.current);
-        const dataImg = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const feature = calculateFeaturesOnCurrentFrame(dataImg, mobileNet);
+    if (isPredicting) {
+      timer = setInterval(() => {
+        if (localModel) {
+          tidy(() => {
+            if (!videoRef.current) return;
 
-        const prediction = localModel.predict(feature.expandDims()).squeeze();
-        const highestIndex = prediction.argMax().arraySync(); // 0 or 1
-        const predictionArray = prediction.arraySync(); // [0.1, 0.9]
+            const { canvas, ctx } = createCanvasContextFromVideo(
+              videoRef.current
+            );
+            const dataImg = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const feature = calculateFeaturesOnCurrentFrame(dataImg, mobileNet);
 
-        const theResult = clasifications[highestIndex].clasificationName;
-        setPredictionResult(theResult);
-      });
+            const prediction = localModel
+              .predict(feature.expandDims())
+              .squeeze();
+            const highestIndex = prediction.argMax().arraySync(); // 0 or 1
+            //const predictionArray = prediction.arraySync(); // [0.1, 0.9]
+
+            const theResult: IPredictionResult = {
+              name: clasifications[highestIndex].clasificationName,
+              dataUrl: clasifications[highestIndex].framesUrlData[highestIndex],
+            };
+            setPredictionResult(theResult);
+          });
+        }
+      }, FRAME_RATE_MS);
     }
-  };
+
+    return () => {
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
+  }, [isPredicting, localModel, mobileNet, clasifications]);
 
   const reset = () => {
     setClasifications([]);
     setIsModelTrained(false);
-    setPredictionResult('');
+    setPredictionResult(null);
+    setIsPredicting(false);
+    setTrainProgress([]);
+  };
+
+  const logProgress = (epoch: number, logs: any) => {
+    const progress = `Epoch ${epoch + 1}: loss = ${logs.loss}`;
+    setTrainProgress((state) => [...state, progress]);
   };
 
   return (
@@ -185,30 +219,56 @@ function App() {
           <Cam width={480} height={480} ref={videoRef} />
         </div>
         <div>
-          <button
-            className="btn btn-outline"
-            onClick={train}
-            disabled={!clasifications.length}
-          >
-            Train
-          </button>
-          <button
-            className="btn btn-primary"
-            disabled={!isModelTrained}
-            onClick={predictCam}
-          >
-            Predict
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={reset}
-            disabled={!isModelTrained}
-          >
-            Reset
-          </button>
-          <h1 className="text-2xl text-center text-green-400">
-            {predictionResult}
-          </h1>
+          <div className="flex gap-2">
+            <button
+              className="btn btn-outline"
+              onClick={train}
+              disabled={!clasifications.length}
+            >
+              Train
+            </button>
+
+            <div className="form-control">
+              <label className="label cursor-pointer">
+                <span className="label-text">Scan and Predict</span>
+                <input
+                  disabled={!isModelTrained}
+                  type="checkbox"
+                  className="toggle"
+                  checked={isPredicting ? true : false}
+                  onChange={() => setIsPredicting((result) => !result)}
+                />
+              </label>
+            </div>
+
+            <button
+              className="btn btn-secondary"
+              onClick={reset}
+              disabled={!isModelTrained}
+            >
+              Reset
+            </button>
+          </div>
+
+          {predictionResult && (
+            <div>
+              <h1 className="text-2xl text-green-400">
+                {predictionResult?.name}
+              </h1>
+
+              <img
+                src={predictionResult?.dataUrl}
+                alt="prediction"
+                className="w-[480px] h-[480px]"
+              />
+            </div>
+          )}
+
+          <ul>
+            {trainProgress.map((progress) => (
+              <li key={progress}>{progress}</li>
+            ))}
+          </ul>
         </div>
       </div>
 
@@ -271,8 +331,4 @@ const calculateFeaturesOnCurrentFrame = (
 
     return predict.squeeze();
   });
-};
-
-const logProgress = (epoch: number, logs: any) => {
-  console.log(`Epoch ${epoch + 1}: loss = ${logs.loss}`);
 };

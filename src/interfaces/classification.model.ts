@@ -5,3 +5,8 @@ export interface IClassification {
   idx: number[];
   imageData: ImageData[];
 }
+
+export interface IPredictionResult {
+  name: string;
+  dataUrl: string;
+}

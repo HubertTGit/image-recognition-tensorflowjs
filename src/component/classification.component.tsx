@@ -27,7 +27,7 @@ export function Classification({
   const [frames, setFrames] = useState<string[]>([]);
   const [idx, setIdx] = useState<number[]>([]);
   const [imageDatas, setImageDatas] = useState<ImageData[]>([]);
-  const [className, setClassName] = useState<string>();
+  const [className, setClassName] = useState<string>('');
 
   useEffect(() => {
     if (className) {
@@ -92,6 +92,7 @@ export function Classification({
     <div className="flex gap-2 items-center">
       <input
         type="text"
+        placeholder="Enter a name"
         onChange={(e) => setClassName(e.target.value)}
         value={className}
       ></input>
