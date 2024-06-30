@@ -44,7 +44,7 @@ export function Classification({
           const { canvas, ctx } = canvasUtil;
 
           if (ctx) {
-            ctx.drawImage(videoRef.current, 80, 0, canvas.width, canvas.height);
+            ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
             //set image data url to frames
             setFrames((state) => {
               return [...state, canvas.toDataURL()];
