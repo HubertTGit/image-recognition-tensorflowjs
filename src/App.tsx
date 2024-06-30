@@ -277,19 +277,17 @@ function App() {
           <div className="col-span-2">
             <Tabs defaultValue="add" className="w-[850px]">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="add">Add</TabsTrigger>
+                <TabsTrigger value="add">
+                  Add &nbsp;
+                  <Badge>{clasifications.length} item(s)</Badge>
+                </TabsTrigger>
                 <TabsTrigger value="train">Train</TabsTrigger>
                 <TabsTrigger value="predict">Predict</TabsTrigger>
               </TabsList>
               <TabsContent value="add">
                 <Card>
                   <CardHeader>
-                    <CardTitle>
-                      Classifications{' '}
-                      <Badge variant="outline">
-                        {clasifications.length} item(s)
-                      </Badge>
-                    </CardTitle>
+                    <CardTitle>Classifications </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <ul>
@@ -323,7 +321,10 @@ function App() {
                     <CardTitle>Train Model</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    <Button onClick={train} disabled={!clasifications.length}>
+                    <Button
+                      onClick={train}
+                      disabled={clasifications.length < 2}
+                    >
                       Train
                     </Button>
                     <ul>
@@ -337,114 +338,54 @@ function App() {
               <TabsContent value="predict">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Predict</CardTitle>
+                    <CardTitle>Predict the Result</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2">
-                    <Toggle
-                      aria-label="Toggle italic"
-                      variant="outline"
-                      onClick={() => setIsPredicting((result) => !result)}
-                    >
-                      <div className="mr-2">
-                        Predicting {isPredicting ? 'On' : 'Off'}
+                  <CardContent className="p-2">
+                    <div className="flex justify-between">
+                      <div>
+                        {isModelTrained && (
+                          <Toggle
+                            aria-label="Toggle italic"
+                            variant="outline"
+                            onClick={() => setIsPredicting((result) => !result)}
+                          >
+                            <div className="mr-2">
+                              Predicting {isPredicting ? 'On' : 'Off'}
+                            </div>
+                            <SunIcon
+                              className={`h-4 w-4 ${
+                                isPredicting && 'animate-spin'
+                              }`}
+                            />
+                          </Toggle>
+                        )}
                       </div>
-                      <SunIcon
-                        className={`h-4 w-4 ${isPredicting && 'animate-spin'}`}
-                      />
-                    </Toggle>
 
-                    <Button onClick={reset} disabled={!isModelTrained}>
-                      Reset
-                    </Button>
+                      <Button onClick={reset} disabled={!isModelTrained}>
+                        Reset
+                      </Button>
+                    </div>
+
+                    {predictionResult && (
+                      <div>
+                        <h1 className="text-2xl text-green-400">
+                          {predictionResult?.name}
+                        </h1>
+
+                        <img
+                          src={predictionResult?.dataUrl}
+                          alt="prediction"
+                          className="w-[480px] h-[480px]"
+                        />
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
           </div>
         </div>
-
-        {/* <div className={`grid grid-cols-3 gap-2 ${showCamera && 'invisible'}`}>
-          <div>
-            <Cam
-              width={480}
-              height={480}
-              ref={videoRef}
-              isVisible={showCamera}
-            />
-            <Skeleton
-              className={`h-[480px] w-[480px] rounded-lg invisible ${
-                showCamera && 'visible'
-              }`}
-            ></Skeleton>
-          </div>
-        </div> */}
       </div>
-
-      {/* <div className="grid grid-cols-2 gap-1">
-        <div>
-          <Button onClick={addClassificationHandler} disabled={!mobileNet}>
-            {mobileNet ? 'Add Face Data' : 'Loading Model'}
-          </Button>
-        </div>
-        <div>
-          <div className="flex gap-2">
-            <Button onClick={train} disabled={!clasifications.length}>
-              Train
-            </Button>
-
-            <Toggle
-              aria-label="Toggle italic"
-              variant="outline"
-              onClick={() => setIsPredicting((result) => !result)}
-            >
-              <div className="mr-2">
-                Predicting {isPredicting ? 'On' : 'Off'}
-              </div>
-              <SunIcon
-                className={`h-4 w-4 ${isPredicting && 'animate-spin'}`}
-              />
-            </Toggle>
-
-            <Button onClick={reset} disabled={!isModelTrained}>
-              Reset
-            </Button>
-          </div>
-
-          {predictionResult && (
-            <div>
-              <h1 className="text-2xl text-green-400">
-                {predictionResult?.name}
-              </h1>
-
-              <img
-                src={predictionResult?.dataUrl}
-                alt="prediction"
-                className="w-[480px] h-[480px]"
-              />
-            </div>
-          )}
-
-          <ul>
-            {trainProgress.map((progress) => (
-              <li key={progress}>{progress}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <ul>
-        {clasifications.map((clasification) => (
-          <li key={clasification.index}>
-            <Classification
-              classification={clasification}
-              onDeleteHandler={removeHandler}
-              onChangeName={changeNameHandler}
-              onRecoderHandler={onSetRecordingHandler}
-              videoRef={videoRef}
-            ></Classification>
-          </li>
-        ))}
-      </ul> */}
     </div>
   );
 }

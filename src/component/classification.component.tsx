@@ -45,6 +45,10 @@ export function Classification({
   }, [className, classification.index, onChangeName]);
 
   useEffect(() => {
+    console.log('classification', classification);
+  }, [classification]);
+
+  useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRecording) {
       timer = setInterval(() => {
