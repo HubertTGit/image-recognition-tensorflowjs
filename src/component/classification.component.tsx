@@ -2,6 +2,15 @@ import { useEffect, useState } from 'react';
 import { IClassification } from '../interfaces/classification.model';
 import { FRAME_RATE_MS } from '../constants/constants';
 import { createCanvasContextFromVideo } from '../utils/utilities';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  CameraIcon,
+  PlayIcon,
+  TrashIcon,
+  VideoIcon,
+} from '@radix-ui/react-icons';
 
 interface ClassificationProps {
   onChangeName: (name: string, index: number) => void;
@@ -89,43 +98,61 @@ export function Classification({
   };
 
   return (
-    <div className="flex gap-2 items-center">
-      <input
-        type="text"
-        placeholder="Enter a name"
-        onChange={(e) => setClassName(e.target.value)}
-        value={className}
-      ></input>
-      <button
-        className="btn btn-error"
-        onClick={() => onDeleteHandler(classification.index)}
-      >
-        Delete
-      </button>
-      <button
-        disabled={!className?.length}
-        className="btn btn-primary"
-        onMouseDown={() => setIsRecording(true)}
-        onMouseUp={() => setIsRecording(false)}
-        onMouseLeave={() => setIsRecording(false)}
-      >
-        Press To Record
-      </button>
-      <ul className="flex gap-2 flex-wrap">
-        {frames.map((shot, idx) => (
-          <li key={idx}>
-            <img src={shot} alt="" width={100} height={100} />
-          </li>
-        ))}
+    <Card className="p-2">
+      <div className="flex justify-between gap-2">
+        <Input
+          type="text"
+          placeholder="Enter a name"
+          onChange={(e) => setClassName(e.target.value)}
+          value={className}
+        ></Input>
+        <Button
+          variant="destructive"
+          size="icon"
+          onClick={() => onDeleteHandler(classification.index)}
+        >
+          <TrashIcon></TrashIcon>
+        </Button>
 
-        {!!frames.length && (
-          <li>
-            <button className="btn btn-error" onClick={clearFramesHandler}>
-              Delete All Frames{' '}
-            </button>
-          </li>
-        )}
-      </ul>
-    </div>
+        <Button
+          className="indicator"
+          disabled={!className?.length}
+          variant="outline"
+          onMouseDown={() => setIsRecording(true)}
+          onMouseUp={() => setIsRecording(false)}
+          onMouseLeave={() => setIsRecording(false)}
+        >
+          <span className="indicator-item badge badge-secondary">
+            {frames.length}
+          </span>
+          Press To Record
+          <PlayIcon></PlayIcon>
+        </Button>
+      </div>
+
+      <div className="overflow-y-auto h-72 my-2">
+        <ul className="flex gap-2 flex-wrap">
+          {frames.map((shot, idx) => (
+            <li key={idx}>
+              <img
+                src={shot}
+                alt=""
+                width={50}
+                height={50}
+                className="rounded-md"
+              />
+            </li>
+          ))}
+
+          {!!frames.length && (
+            <li>
+              <Button variant="outline" onClick={clearFramesHandler}>
+                Delete Frames
+              </Button>
+            </li>
+          )}
+        </ul>
+      </div>
+    </Card>
   );
 }

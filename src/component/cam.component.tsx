@@ -13,7 +13,7 @@ const Cam = forwardRef<HTMLVideoElement, CamProps>(
           ref={ref}
           width={width}
           height={height}
-          className="border-2 border-red-500"
+          className="rounded-lg"
         ></video>
       </>
     );

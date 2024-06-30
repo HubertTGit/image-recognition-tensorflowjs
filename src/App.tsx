@@ -27,6 +27,21 @@ import {
 } from './constants/constants';
 import { createCanvasContextFromVideo } from './utils/utilities';
 import { Button } from '@/components/ui/button';
+import { SunIcon, PlusCircledIcon } from '@radix-ui/react-icons';
+import { Toggle } from './components/ui/toggle';
+import { Skeleton } from './components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from './components/ui/card';
+import { Label } from './components/ui/label';
+import { Input } from './components/ui/input';
+import { Badge } from './components/ui/badge';
 
 function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -38,6 +53,7 @@ function App() {
   const [predictionResult, setPredictionResult] =
     useState<IPredictionResult | null>(null);
   const [trainProgress, setTrainProgress] = useState<string[]>([]);
+  const [showCamera, setShowCamera] = useState<boolean>(false);
 
   useEffect(() => {
     loadMobileNetFeatureModel().then((model) => {
@@ -107,10 +123,6 @@ function App() {
       return state;
     });
   };
-
-  useEffect(() => {
-    initCam(videoRef);
-  }, []);
 
   const train = async () => {
     console.table(clasifications);
@@ -202,53 +214,200 @@ function App() {
     setTrainProgress((state) => [...state, progress]);
   };
 
-  return (
-    <div>
-      <h1 className="text-3xl font-bold underline">
-        Face Recognition with Tensorflow
-      </h1>
+  const initCam = () => {
+    if (videoRef.current) {
+      const constraints = {
+        video: {
+          width: { ideal: 480 },
+          height: { ideal: 480 },
+        },
+        audio: false,
+      };
 
-      <div className="grid grid-cols-2 gap-1">
+      navigator.mediaDevices
+        .getUserMedia(constraints)
+        .then((stream) => {
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.play();
+            setShowCamera(true);
+          }
+        })
+        .catch((error) => {
+          console.error('Error accessing camera:', error);
+        });
+    }
+  };
+
+  const startCamera = () => {
+    initCam();
+  };
+
+  return (
+    <div className=" flex justify-center items-center">
+      <div>
+        <h1 className="text-3xl font-bold text-center p-5">
+          Face Recognition Model
+        </h1>
+
+        {!showCamera && (
+          <div className="text-center">
+            {mobileNet ? (
+              <Button
+                onClick={startCamera}
+                className={`${showCamera && 'invisible'} `}
+              >
+                Activate Camera
+              </Button>
+            ) : (
+              <div>
+                <span className="loading loading-spinner loading-lg"></span>
+                <p>loading base model ...</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div
+          className={`grid grid-cols-3 gap-5 p-5 ${!showCamera && 'invisible'}`}
+        >
+          <div>
+            <Cam width={480} height={480} ref={videoRef} />
+          </div>
+          <div className="col-span-2">
+            <Tabs defaultValue="add" className="w-[850px]">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="add">Add</TabsTrigger>
+                <TabsTrigger value="train">Train</TabsTrigger>
+                <TabsTrigger value="predict">Predict</TabsTrigger>
+              </TabsList>
+              <TabsContent value="add">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>
+                      Classifications{' '}
+                      <Badge variant="outline">
+                        {clasifications.length} item(s)
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <ul>
+                      {clasifications.map((clasification) => (
+                        <li key={clasification.index} className="pb-2">
+                          <Classification
+                            classification={clasification}
+                            onDeleteHandler={removeHandler}
+                            onChangeName={changeNameHandler}
+                            onRecoderHandler={onSetRecordingHandler}
+                            videoRef={videoRef}
+                          ></Classification>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={addClassificationHandler}
+                    >
+                      <PlusCircledIcon />
+                      &nbsp; Add
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="train">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Train Model</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Button onClick={train} disabled={!clasifications.length}>
+                      Train
+                    </Button>
+                    <ul>
+                      {trainProgress.map((progress) => (
+                        <li key={progress}>{progress}</li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="predict">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Predict</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Toggle
+                      aria-label="Toggle italic"
+                      variant="outline"
+                      onClick={() => setIsPredicting((result) => !result)}
+                    >
+                      <div className="mr-2">
+                        Predicting {isPredicting ? 'On' : 'Off'}
+                      </div>
+                      <SunIcon
+                        className={`h-4 w-4 ${isPredicting && 'animate-spin'}`}
+                      />
+                    </Toggle>
+
+                    <Button onClick={reset} disabled={!isModelTrained}>
+                      Reset
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+
+        {/* <div className={`grid grid-cols-3 gap-2 ${showCamera && 'invisible'}`}>
+          <div>
+            <Cam
+              width={480}
+              height={480}
+              ref={videoRef}
+              isVisible={showCamera}
+            />
+            <Skeleton
+              className={`h-[480px] w-[480px] rounded-lg invisible ${
+                showCamera && 'visible'
+              }`}
+            ></Skeleton>
+          </div>
+        </div> */}
+      </div>
+
+      {/* <div className="grid grid-cols-2 gap-1">
         <div>
-          <Button
-            className="btn btn-primary"
-            onClick={addClassificationHandler}
-            disabled={!mobileNet}
-          >
+          <Button onClick={addClassificationHandler} disabled={!mobileNet}>
             {mobileNet ? 'Add Face Data' : 'Loading Model'}
           </Button>
-          <Cam width={480} height={480} ref={videoRef} />
         </div>
         <div>
           <div className="flex gap-2">
-            <button
-              className="btn btn-outline"
-              onClick={train}
-              disabled={!clasifications.length}
-            >
+            <Button onClick={train} disabled={!clasifications.length}>
               Train
-            </button>
+            </Button>
 
-            <div className="form-control">
-              <label className="label cursor-pointer">
-                <span className="label-text">Scan and Predict</span>
-                <input
-                  disabled={!isModelTrained}
-                  type="checkbox"
-                  className="toggle"
-                  checked={isPredicting ? true : false}
-                  onChange={() => setIsPredicting((result) => !result)}
-                />
-              </label>
-            </div>
-
-            <button
-              className="btn btn-secondary"
-              onClick={reset}
-              disabled={!isModelTrained}
+            <Toggle
+              aria-label="Toggle italic"
+              variant="outline"
+              onClick={() => setIsPredicting((result) => !result)}
             >
+              <div className="mr-2">
+                Predicting {isPredicting ? 'On' : 'Off'}
+              </div>
+              <SunIcon
+                className={`h-4 w-4 ${isPredicting && 'animate-spin'}`}
+              />
+            </Toggle>
+
+            <Button onClick={reset} disabled={!isModelTrained}>
               Reset
-            </button>
+            </Button>
           </div>
 
           {predictionResult && (
@@ -285,36 +444,12 @@ function App() {
             ></Classification>
           </li>
         ))}
-      </ul>
+      </ul> */}
     </div>
   );
 }
 
 export default App;
-
-const initCam = (ref: React.RefObject<HTMLVideoElement>) => {
-  if (ref.current) {
-    const constraints = {
-      video: {
-        width: { ideal: 480 },
-        height: { ideal: 480 },
-      },
-      audio: false,
-    };
-
-    navigator.mediaDevices
-      .getUserMedia(constraints)
-      .then((stream) => {
-        if (ref.current) {
-          ref.current.srcObject = stream;
-          ref.current.play();
-        }
-      })
-      .catch((error) => {
-        console.error('Error accessing camera:', error);
-      });
-  }
-};
 
 const calculateFeaturesOnCurrentFrame = (
   imageDatas: ImageData,

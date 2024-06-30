@@ -13,7 +13,8 @@ export const loadMobileNetFeatureModel = async () => {
     const answer = mobilenet.predict(
       zeros([1, MOBILE_NET_INPUT_HEIGHT, MOBILE_NET_INPUT_WIDTH, 3])
     ) as Tensor;
-    console.log(answer.shape);
+
+    answer.dispose();
   });
 
   return mobilenet;

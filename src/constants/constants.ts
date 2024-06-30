@@ -1,4 +1,4 @@
-export const EPOCH = 10; //
+export const EPOCH = 15; //
 export const BATCH_SIZE = 5; //
 export const MOBILE_NET_INPUT_WIDTH = 224;
 export const MOBILE_NET_INPUT_HEIGHT = 224;
