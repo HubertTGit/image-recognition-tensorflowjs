@@ -26,6 +26,7 @@ import {
   MOBILE_NET_INPUT_WIDTH,
 } from './constants/constants';
 import { createCanvasContextFromVideo } from './utils/utilities';
+import { Button } from '@/components/ui/button';
 
 function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -209,13 +210,13 @@ function App() {
 
       <div className="grid grid-cols-2 gap-1">
         <div>
-          <button
+          <Button
             className="btn btn-primary"
             onClick={addClassificationHandler}
             disabled={!mobileNet}
           >
             {mobileNet ? 'Add Face Data' : 'Loading Model'}
-          </button>
+          </Button>
           <Cam width={480} height={480} ref={videoRef} />
         </div>
         <div>
