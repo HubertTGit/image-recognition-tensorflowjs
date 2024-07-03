@@ -94,16 +94,9 @@ function App() {
     setIsTraining(true);
     setTrainProgress([]);
     try {
-      const featureInput = clasifications.reduce((acc, clasification) => {
-        return [...acc, ...clasification.imageDatas];
-      }, []) as unknown as ImageData[];
+      const featureInput = clasifications.flatMap((c) => c.imageDatas);
 
-      const trainingDataOutputs = clasifications.reduce(
-        (acc, clasification) => {
-          return [...acc, ...clasification.indexes];
-        },
-        []
-      ) as unknown as number[];
+      const trainingDataOutputs = clasifications.flatMap((c) => c.indexes);
 
       const trainingDataInputs = featureInput.map((d) =>
         calculateFeaturesOnCurrentFrame(d, mobileNet)
