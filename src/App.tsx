@@ -16,6 +16,7 @@ import {
   util,
   oneHot,
   stack,
+  Tensor,
 } from '@tensorflow/tfjs';
 import { trainedModel } from './model/trained-model';
 import {
@@ -126,7 +127,7 @@ function App() {
 
         toast.success('model trained successfully');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.message);
       setIsTraining(false);
       setTrainProgress([]);
@@ -149,10 +150,13 @@ function App() {
             const dataImg = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const feature = calculateFeaturesOnCurrentFrame(dataImg, mobileNet);
 
-            const prediction = localModel
-              .predict(feature.expandDims())
-              .squeeze();
-            const highestIndex = prediction.argMax().arraySync(); // 0 or 1
+            const prediction = localModel.predict(
+              feature.expandDims()
+            ) as Tensor;
+
+            const prepare = prediction.squeeze();
+
+            const highestIndex = prepare.argMax().arraySync() as number; // 0 or 1
             //const predictionArray = prediction.arraySync(); // [0.1, 0.9]
 
             const theResult: IPredictionResult = {
