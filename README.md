@@ -1,6 +1,6 @@
 # Image Recognition Demo with TensorFlow.js
 
-![Image Detection with TensorFlowJs]([https://github.com/HubertTGit/image-recognition-tensorflowjs/assets/98665493/ab6b07cd-c35b-467e-8cc9-87da02e3c945])
+![Image Detection with TensorFlowJs](https://github.com/HubertTGit/image-recognition-tensorflowjs/assets/98665493/ab6b07cd-c35b-467e-8cc9-87da02e3c945)
 
 ## Overview
 
