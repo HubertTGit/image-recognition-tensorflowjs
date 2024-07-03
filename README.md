@@ -1,5 +1,7 @@
 # Image Recognition Demo with TensorFlow.js
 
+![Image Detection with TensorFlowJs]([example.jpg](https://github.com/HubertTGit/image-recognition-tensorflowjs/assets/98665493/ab6b07cd-c35b-467e-8cc9-87da02e3c945))
+
 ## Overview
 
 This project demonstrates image recognition capabilities using TensorFlow.js, built within a ReactJS framework. It showcases how to integrate machine learning models directly into a web application for real-time image processing and classification.
@@ -41,9 +43,9 @@ This project demonstrates image recognition capabilities using TensorFlow.js, bu
 
 1. Start the development server:
    ```bash
-   npm start
+   npm run dev
    ```
-2. Open your browser and go to `http://localhost:3000` to see the application in action.
+2. Open your browser and go to `http://localhost:5173` to see the application in action.
 
 ## Usage
 
