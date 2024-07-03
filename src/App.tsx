@@ -380,7 +380,9 @@ const calculateFeaturesOnCurrentFrame = (
       true
     );
     const normalizedTensorFrame = resized.div(255);
-    const predict = model!.predict(normalizedTensorFrame.expandDims());
+    const predict = model!.predict(
+      normalizedTensorFrame.expandDims()
+    ) as Tensor;
 
     return predict.squeeze();
   });
