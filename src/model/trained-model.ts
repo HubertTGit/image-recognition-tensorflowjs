@@ -13,7 +13,7 @@ export const trainedModel = (classificationsLength: number) => {
     layers.dense({ units: classificationsLength, activation: 'softmax' })
   );
 
-  model.summary();
+  //model.summary();
 
   // Compile the model with the defined optimizer and specify a loss function to use.
   model.compile({

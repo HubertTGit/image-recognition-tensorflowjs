@@ -1,52 +1,26 @@
-import { useEffect, useState } from 'react';
+import { ChangeEvent, ReactNode, useEffect, useState } from 'react';
 import { IClassification } from '../interfaces/classification.model';
 import { FRAME_RATE_MS } from '../constants/constants';
 import { createCanvasContextFromVideo } from '../utils/utilities';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import {
-  CameraIcon,
-  PlayIcon,
-  TrashIcon,
-  VideoIcon,
-} from '@radix-ui/react-icons';
+import { PlayIcon, TrashIcon } from '@radix-ui/react-icons';
+import { useAtom } from 'jotai';
+import { classificationsState } from '@/states/classifications.state';
 
 interface ClassificationProps {
-  onChangeName: (name: string, index: number) => void;
-  onDeleteHandler: (idx: number) => void;
-  onRecoderHandler: (
-    idx: number,
-    frames: string[],
-    idxs: number[],
-    imageDatas: ImageData[]
-  ) => void;
   videoRef: React.RefObject<HTMLVideoElement>;
-  classification: IClassification;
+  classificationIdx: number;
 }
 
-export function Classification({
-  onChangeName,
-  onDeleteHandler,
-  onRecoderHandler,
+export const ClassificationCmp = ({
   videoRef,
-  classification,
-}: ClassificationProps) {
+  classificationIdx,
+}: ClassificationProps): ReactNode => {
   const [isRecording, setIsRecording] = useState(false);
-  const [frames, setFrames] = useState<string[]>([]);
-  const [idx, setIdx] = useState<number[]>([]);
-  const [imageDatas, setImageDatas] = useState<ImageData[]>([]);
-  const [className, setClassName] = useState<string>('');
-
-  useEffect(() => {
-    if (className) {
-      onChangeName(className, classification.index);
-    }
-  }, [className, classification.index, onChangeName]);
-
-  useEffect(() => {
-    console.log('classification', classification);
-  }, [classification]);
+  const [classifications, setClassifications] =
+    useAtom<IClassification[]>(classificationsState);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -58,26 +32,32 @@ export function Classification({
 
           if (ctx) {
             ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-            //set image data url to frames
-            setFrames((state) => {
-              return [...state, canvas.toDataURL()];
-            });
-            //set index
-            setIdx((state) => {
-              return [...state, classification.index];
-            });
-            //set image data
-            setImageDatas((state) => {
-              return [
-                ...state,
-                ctx.getImageData(0, 0, canvas.width, canvas.height),
-              ];
+            const dataUrl = canvas.toDataURL();
+            const imageData = ctx.getImageData(
+              0,
+              0,
+              canvas.width,
+              canvas.height
+            );
+            const idx = classificationIdx;
+
+            setClassifications((state) => {
+              const classifications = state.map((c, i) => {
+                if (i === idx) {
+                  return {
+                    ...c,
+                    framesUrlDatas: [...c.framesUrlDatas, dataUrl],
+                    imageDatas: [...c.imageDatas, imageData],
+                    indexes: [...c.indexes, idx],
+                  };
+                }
+                return c;
+              });
+              return classifications;
             });
           }
         }
       }, FRAME_RATE_MS); // 5ms
-    } else {
-      onRecoderHandler(classification.index, frames, idx, imageDatas);
     }
 
     return () => {
@@ -85,20 +65,48 @@ export function Classification({
         clearInterval(timer);
       }
     };
-  }, [
-    isRecording,
-    classification.index,
-    onRecoderHandler,
-    frames,
-    videoRef,
-    idx,
-    imageDatas,
-  ]);
+  }, [isRecording, classificationIdx, setClassifications, videoRef]);
 
   const clearFramesHandler = () => {
-    setFrames([]);
-    setIdx([]);
-    setImageDatas([]);
+    setClassifications((state) => {
+      const classifications = state.map((c, i) => {
+        if (i === classificationIdx) {
+          return {
+            ...c,
+            framesUrlDatas: [],
+            indexes: [],
+            imageDatas: [],
+          };
+        }
+        return c;
+      });
+
+      return classifications;
+    });
+  };
+
+  const changeNameHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    setClassifications((state) => {
+      const classifications = state.map((c, i) => {
+        if (i === classificationIdx) {
+          return {
+            ...c,
+            clasificationName: e.target.value,
+          };
+        }
+        return c;
+      });
+
+      return classifications;
+    });
+  };
+
+  const deleteHandler = () => {
+    console.log(classificationIdx, classifications);
+    setClassifications((state) => {
+      const classifications = state.filter((_, i) => i !== classificationIdx);
+      return classifications;
+    });
   };
 
   return (
@@ -107,27 +115,23 @@ export function Classification({
         <Input
           type="text"
           placeholder="Enter a name"
-          onChange={(e) => setClassName(e.target.value)}
-          value={className}
+          onChange={changeNameHandler}
+          value={classifications[classificationIdx].clasificationName}
         ></Input>
-        <Button
-          variant="destructive"
-          size="icon"
-          onClick={() => onDeleteHandler(classification.index)}
-        >
+        <Button variant="destructive" size="icon" onClick={deleteHandler}>
           <TrashIcon></TrashIcon>
         </Button>
 
         <Button
           className="indicator"
-          disabled={!className?.length}
+          disabled={!classifications[classificationIdx].clasificationName}
           variant="outline"
           onMouseDown={() => setIsRecording(true)}
           onMouseUp={() => setIsRecording(false)}
           onMouseLeave={() => setIsRecording(false)}
         >
           <span className="indicator-item badge badge-secondary">
-            {frames.length}
+            {classifications[classificationIdx].indexes.length}
           </span>
           Press To Record
           <PlayIcon></PlayIcon>
@@ -136,19 +140,21 @@ export function Classification({
 
       <div className="overflow-y-auto h-72 my-2">
         <ul className="flex gap-2 flex-wrap">
-          {frames.map((shot, idx) => (
-            <li key={idx}>
-              <img
-                src={shot}
-                alt=""
-                width={50}
-                height={50}
-                className="rounded-md"
-              />
-            </li>
-          ))}
+          {classifications[classificationIdx].framesUrlDatas.map(
+            (shot, idx) => (
+              <li key={idx}>
+                <img
+                  src={shot}
+                  alt=""
+                  width={50}
+                  height={50}
+                  className="rounded-md"
+                />
+              </li>
+            )
+          )}
 
-          {!!frames.length && (
+          {!!classifications[classificationIdx].indexes.length && (
             <li>
               <Button variant="outline" onClick={clearFramesHandler}>
                 Delete Frames
@@ -159,4 +165,4 @@ export function Classification({
       </div>
     </Card>
   );
-}
+};

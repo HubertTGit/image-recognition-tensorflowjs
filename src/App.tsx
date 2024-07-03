@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Cam from './component/cam.component';
-import { Classification } from './component/classification.component';
+import { ClassificationCmp } from './component/classification.component';
 import {
   IClassification,
   IPredictionResult,
@@ -32,10 +32,14 @@ import { Toggle } from './components/ui/toggle';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { Badge } from './components/ui/badge';
+import { useAtom } from 'jotai';
+import { classificationsState } from './states/classifications.state';
+import { toast } from 'sonner';
 
 function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [clasifications, setClasifications] = useState<IClassification[]>([]);
+  const [clasifications, setClasifications] =
+    useAtom<IClassification[]>(classificationsState);
   const [mobileNet, setmobileNet] = useState<GraphModel | null>(null);
   const [localModel, setLocalModel] = useState<Sequential | null>(null);
   const [isModelTrained, setIsModelTrained] = useState<boolean>(false);
@@ -44,6 +48,7 @@ function App() {
     useState<IPredictionResult | null>(null);
   const [trainProgress, setTrainProgress] = useState<string[]>([]);
   const [showCamera, setShowCamera] = useState<boolean>(false);
+  const [isTraining, setIsTraining] = useState<boolean>(false);
 
   useEffect(() => {
     loadMobileNetFeatureModel().then((model) => {
@@ -66,9 +71,9 @@ function App() {
             {
               clasificationName: `class ${state[state.length - 1].index + 1}`,
               index: state[state.length - 1].index + 1,
-              framesUrlData: [],
-              idx: [],
-              imageData: [],
+              framesUrlDatas: [],
+              indexes: [],
+              imageDatas: [],
             },
           ],
         ];
@@ -77,78 +82,61 @@ function App() {
         {
           clasificationName: 'class 0',
           index: 0,
-          framesUrlData: [],
-          idx: [],
-          imageData: [],
+          framesUrlDatas: [],
+          indexes: [],
+          imageDatas: [],
         },
       ];
     });
   };
 
-  const onSetRecordingHandler = (
-    idx: number,
-    frames: string[],
-    idxs: number[],
-    imageDatas: ImageData[]
-  ) => {
-    setClasifications((state) => {
-      const index = state.findIndex((c) => c.index === idx);
-      state[index].framesUrlData = frames;
-      state[index].idx = idxs;
-      state[index].imageData = imageDatas;
-      return state;
-    });
-  };
-  const removeHandler = (idx: number) => {
-    setClasifications((state) => {
-      return state.filter((c) => c.index !== idx);
-    });
-  };
+  const trainSamples = async () => {
+    setIsTraining(true);
+    setTrainProgress([]);
+    try {
+      const featureInput = clasifications.reduce((acc, clasification) => {
+        return [...acc, ...clasification.imageDatas];
+      }, []) as unknown as ImageData[];
 
-  const changeNameHandler = (name: string, idx: number) => {
-    setClasifications((state) => {
-      const index = state.findIndex((c) => c.index === idx);
-      state[index].clasificationName = name;
+      const trainingDataOutputs = clasifications.reduce(
+        (acc, clasification) => {
+          return [...acc, ...clasification.indexes];
+        },
+        []
+      ) as unknown as number[];
 
-      return state;
-    });
-  };
+      const trainingDataInputs = featureInput.map((d) =>
+        calculateFeaturesOnCurrentFrame(d, mobileNet)
+      );
 
-  const train = async () => {
-    console.table(clasifications);
+      util.shuffleCombo(trainingDataInputs, trainingDataOutputs);
 
-    const featureInput = clasifications.reduce((acc, clasification) => {
-      return [...acc, ...clasification.imageData];
-    }, []) as unknown as ImageData[];
+      if (localModel) {
+        const outputsAsTensor = tensor1d(trainingDataOutputs, 'int32');
+        const oneHotOutputs = oneHot(outputsAsTensor, clasifications.length);
+        const inputsAsTensor = stack(trainingDataInputs);
 
-    const trainingDataOutputs = clasifications.reduce((acc, clasification) => {
-      return [...acc, ...clasification.idx];
-    }, []) as unknown as number[];
+        await localModel.fit(inputsAsTensor, oneHotOutputs, {
+          shuffle: true,
+          batchSize: BATCH_SIZE,
+          epochs: EPOCH,
+          callbacks: { onEpochEnd: logProgress },
+        });
 
-    const trainingDataInputs = featureInput.map((d) =>
-      calculateFeaturesOnCurrentFrame(d, mobileNet)
-    );
+        outputsAsTensor.dispose();
+        oneHotOutputs.dispose();
+        inputsAsTensor.dispose();
 
-    util.shuffleCombo(trainingDataInputs, trainingDataOutputs);
+        setLocalModel(localModel);
+        setIsModelTrained(true);
+        setIsTraining(false);
 
-    if (localModel) {
-      const outputsAsTensor = tensor1d(trainingDataOutputs, 'int32');
-      const oneHotOutputs = oneHot(outputsAsTensor, clasifications.length);
-      const inputsAsTensor = stack(trainingDataInputs);
-
-      await localModel.fit(inputsAsTensor, oneHotOutputs, {
-        shuffle: true,
-        batchSize: BATCH_SIZE,
-        epochs: EPOCH,
-        callbacks: { onEpochEnd: logProgress },
-      });
-
-      outputsAsTensor.dispose();
-      oneHotOutputs.dispose();
-      inputsAsTensor.dispose();
-
-      setLocalModel(localModel);
-      setIsModelTrained(true);
+        toast.success('model trained successfully');
+      }
+    } catch (error) {
+      toast.error(error.message);
+      setIsTraining(false);
+      setTrainProgress([]);
     }
   };
 
@@ -176,7 +164,8 @@ function App() {
 
             const theResult: IPredictionResult = {
               name: clasifications[highestIndex].clasificationName,
-              dataUrl: clasifications[highestIndex].framesUrlData[highestIndex],
+              dataUrl:
+                clasifications[highestIndex].framesUrlDatas[highestIndex],
             };
             setPredictionResult(theResult);
           });
@@ -223,8 +212,8 @@ function App() {
             setShowCamera(true);
           }
         })
-        .catch((error) => {
-          console.error('Error accessing camera:', error);
+        .catch(() => {
+          toast.error('error loading camera. please try again');
         });
     }
   };
@@ -258,18 +247,18 @@ function App() {
           </div>
         )}
 
-        <div
-          className={`grid grid-cols-3 gap-5 p-5 ${!showCamera && 'invisible'}`}
-        >
-          <div>
+        <div className={`flex gap-5 p-5  ${!showCamera && 'invisible'}`}>
+          <div className="sticky top-0 ">
             <Cam width={480} height={480} ref={videoRef} />
           </div>
-          <div className="col-span-2">
+          <div>
             <Tabs defaultValue="add" className="w-[850px]">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-3 sticky top-5">
                 <TabsTrigger value="add">
                   Add &nbsp;
-                  <Badge>{clasifications.length} item(s)</Badge>
+                  {!!clasifications.length && (
+                    <Badge>{clasifications.length} item(s)</Badge>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="train">Train</TabsTrigger>
                 <TabsTrigger value="predict">Predict</TabsTrigger>
@@ -281,15 +270,12 @@ function App() {
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <ul>
-                      {clasifications.map((clasification) => (
-                        <li key={clasification.index} className="pb-2">
-                          <Classification
-                            classification={clasification}
-                            onDeleteHandler={removeHandler}
-                            onChangeName={changeNameHandler}
-                            onRecoderHandler={onSetRecordingHandler}
+                      {clasifications.map((_, index) => (
+                        <li key={index} className="pb-2">
+                          <ClassificationCmp
+                            classificationIdx={index}
                             videoRef={videoRef}
-                          ></Classification>
+                          ></ClassificationCmp>
                         </li>
                       ))}
                     </ul>
@@ -307,17 +293,14 @@ function App() {
               </TabsContent>
               <TabsContent value="train">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Train Model</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
+                  <CardContent className="p-5">
                     <Button
-                      onClick={train}
+                      onClick={trainSamples}
                       disabled={clasifications.length < 2}
                     >
-                      Train
+                      {isTraining ? 'Training...' : 'Train sample images'}
                     </Button>
-                    <ul>
+                    <ul className="pt-5">
                       {trainProgress.map((progress) => (
                         <li key={progress}>{progress}</li>
                       ))}
@@ -328,47 +311,53 @@ function App() {
               <TabsContent value="predict">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Predict the Result</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-2">
-                    <div className="flex justify-between">
-                      <div>
-                        {isModelTrained && (
-                          <Toggle
-                            aria-label="Toggle italic"
-                            variant="outline"
-                            onClick={() => setIsPredicting((result) => !result)}
-                          >
-                            <div className="mr-2">
-                              Predicting {isPredicting ? 'On' : 'Off'}
-                            </div>
-                            <SunIcon
-                              className={`h-4 w-4 ${
-                                isPredicting && 'animate-spin'
-                              }`}
-                            />
-                          </Toggle>
-                        )}
-                      </div>
-
+                    <CardTitle className="flex justify-between items-center">
+                      <div>Predict the Result</div>
                       <Button onClick={reset} disabled={!isModelTrained}>
                         Reset
                       </Button>
-                    </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-5">
+                    <div className="hero bg-base-300">
+                      <div className="hero-content text-center">
+                        <div className="max-w-md">
+                          {predictionResult && (
+                            <div className="mb-5">
+                              <h1 className="text-5xl font-bold text-green-400 mb-5">
+                                {predictionResult?.name}
+                              </h1>
 
-                    {predictionResult && (
-                      <div>
-                        <h1 className="text-2xl text-green-400">
-                          {predictionResult?.name}
-                        </h1>
+                              <img
+                                src={predictionResult?.dataUrl}
+                                alt="prediction"
+                                className="w-[480px] h-[480px] rounded-lg"
+                              />
+                            </div>
+                          )}
 
-                        <img
-                          src={predictionResult?.dataUrl}
-                          alt="prediction"
-                          className="w-[480px] h-[480px]"
-                        />
+                          {isModelTrained && (
+                            <Toggle
+                              className="w-full"
+                              aria-label="Toggle italic"
+                              variant="outline"
+                              onClick={() =>
+                                setIsPredicting((result) => !result)
+                              }
+                            >
+                              <div className="mr-2">
+                                Predicting {isPredicting ? 'On' : 'Off'}
+                              </div>
+                              <SunIcon
+                                className={`h-4 w-4 ${
+                                  isPredicting && 'animate-spin'
+                                }`}
+                              />
+                            </Toggle>
+                          )}
+                        </div>
                       </div>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>

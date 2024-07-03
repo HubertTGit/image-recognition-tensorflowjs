@@ -1,9 +1,9 @@
 export interface IClassification {
   clasificationName: string;
   index: number;
-  framesUrlData: string[];
-  idx: number[];
-  imageData: ImageData[];
+  framesUrlDatas: string[];
+  indexes: number[];
+  imageDatas: ImageData[];
 }
 
 export interface IPredictionResult {
