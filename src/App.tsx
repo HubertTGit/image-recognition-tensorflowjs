@@ -226,7 +226,7 @@ function App() {
     <div className=" flex justify-center items-center">
       <div>
         <h1 className="text-3xl font-bold text-center p-5">
-          Face Recognition Model
+          Trainable object detection
         </h1>
 
         {!showCamera && (
